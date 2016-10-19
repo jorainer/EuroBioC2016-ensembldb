@@ -2,7 +2,7 @@ Repository providing my material for the
 [[http://scicore.ch/events/eurobioc2016/][European Bioconductor Developer's
 Meeting 2016]] in Basel, Switzerland.
 
-* TODOs
+* TODOs								   :noexport:
 
 ** TODO Write abstract and share with Laurent
 ** TODO Create the presentation [/]
