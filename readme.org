@@ -4,8 +4,8 @@ Meeting 2016]] in Basel, Switzerland.
 
 * TODOs								   :noexport:
 
-** TODO Write abstract and share with Laurent
-** TODO Create the presentation [/]
+** TODO Write abstract
+** TODO Create the presentation [0/7]
 
 + [ ] Database layout with http://asciiflow.com/
 + [ ] Simple examples to fetch genes/transcripts.
