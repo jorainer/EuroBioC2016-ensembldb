@@ -1,0 +1,16 @@
+Repository providing my material for the
+[[http://scicore.ch/events/eurobioc2016/][European Bioconductor Developer's
+Meeting 2016]] in Basel, Switzerland.
+
+* TODOs
+
+** TODO Write abstract and share with Laurent
+** TODO Create the presentation [/]
+
++ [ ] Database layout with http://asciiflow.com/
++ [ ] Simple examples to fetch genes/transcripts.
++ [ ] Integrate with UCSC annotations.
++ [ ] Fetch protein data: the =proteins= method.
++ [ ] Using =select=.
++ [ ] Integration into =Pbase=.
++ [ ] Map peptide features to chromosome.
