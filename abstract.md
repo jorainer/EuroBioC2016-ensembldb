@@ -1,8 +1,6 @@
-## `ensembldb`: expanding transcript-centered databases with protein annotations
-
 ## Extending `ensembldb`: MySQL backend and protein annotations
 
-Johannes Rainer (twitter/github:jotsetung) and Laurent Gatto (twitter:lgatt0/github:lgatto)
+Johannes Rainer (twitter/github:jotsetung), Sebastian Gibb (github:sgibb) and Laurent Gatto (twitter:lgatt0/github:lgatto)
 
 The `ensembldb` package allows to create and query `AnnotationDbi` compliant
 `EnsDb` databases to store and extract genomic coordinates of genes, transcrips
