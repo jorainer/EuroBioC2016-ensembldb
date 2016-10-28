@@ -1,9 +1,9 @@
 ## Extending `ensembldb`: MySQL backend and protein annotations
 
-Johannes Rainer (twitter/github:jotsetung), Sebastian Gibb (github:sgibb) and Laurent Gatto (twitter:lgatt0/github:lgatto)
+Johannes Rainer (twitter/github:jotsetung), Sebastian Gibb (twitter:sebastiangibb/github:sgibb) and Laurent Gatto (twitter:lgatt0/github:lgatto)
 
 The `ensembldb` package allows to create and query `AnnotationDbi` compliant
-`EnsDb` databases to store and extract genomic coordinates of genes, transcrips
+`EnsDb` databases to store and extract genomic coordinates of genes, transcripts
 and exons. While providing similar annotations than the `TxDb` databases,
 `ensembldb` implements a rich filtering framework enabling fast and customized
 database queries. Recently, `ensembldb` was extended with the capability
