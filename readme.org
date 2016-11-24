@@ -4,13 +4,20 @@ Meeting 2016]] in Basel, Switzerland.
 
 * TODOs								   :noexport:
 
-** TODO Write abstract
+** DONE Write abstract
+   CLOSED: [2016-11-16 Wed 09:18]
+   - State "DONE"       from "TODO"       [2016-11-16 Wed 09:18]
 ** TODO Create the presentation [0/7]
 
++ [ ] General introduction
 + [ ] Database layout with http://asciiflow.com/
-+ [ ] Simple examples to fetch genes/transcripts.
-+ [ ] Integrate with UCSC annotations.
++ [ ] Simple examples to fetch genes/transcripts: show filters.
++ [ ] Create databases: ideally using Perl API.
++ [ ] Create mysql database.
+      - Benefit: have one central dedicated server for all EnsDbs.
+      - Performance gain if MySQL configured properly.
++ [ ] Integrate with UCSC annotations. -> things not covered?
 + [ ] Fetch protein data: the =proteins= method.
-+ [ ] Using =select=.
++ [ ] Using =select=. -> things not covered?
 + [ ] Integration into =Pbase=.
 + [ ] Map peptide features to chromosome.
