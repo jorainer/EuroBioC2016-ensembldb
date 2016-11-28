@@ -6,7 +6,9 @@
 
 * Extending =ensembldb=: MySQL backend and protein annotations
 
-*Johannes Rainer* (EURAC), EuroBioC2016, Basel
+*Johannes Rainer* (EURAC research), EuroBioC2016, Basel
+
+Twitter/github: /jotsetung/.
 
 ** Introduction
 
@@ -19,42 +21,41 @@
 
 + Full Database layout
 
-#+BEGIN_SRC ditaa :file dblayout.png
+  #+BEGIN_SRC ditaa :file dblayout.png
 
-  +-----------------+          +-----------+        +------------------+        +------------------+
-  |exon             |          |tx2exon    |        |tx                |        |gene              |
-  +-----------------+          +-----------+        +------------------+        +------------------+
-  |* exon_id        +----+     |* tx_id    +----+---+* tx_id           |   +----+* gene_id         |
-  |* exon_seq_start |    +-----+* exon_id  |    |   |* gene_id         +---+    |* gene_name       |
-  |* exon_seq_end   |          |           |    |   |* tx_biotype      |        |* gene_biotype    |
-  +-----------------+          +-----------+    |   |* tx_seq_start    |        |* entrezid        |
-						|   |* tx_seq_end      |        |* gene_seq_start  |
-						|   |* tx_cds_seq_start|        |* gene_seq_end    |
-  +-----------------------+                     |   |* tx_cds_seq_end  |   +----+* seq_name        |
-  |protein_domain         |                     |   +------------------+   |    |* seq_strand      |
-  +-----------------------+                     |                          |    |* seq_coord_system|
-  |* protein_domain_id    |                     +-----+                    |    +------------------+
-  |* protein_id           +--+                        |                    |
-  |* protein_domain_source|  |  +------------------+  |                    |
-  |* interpro_accession   |  |  |protein           |  |                    |    +-------------+
-  |* prot_dom_start       |  |  +------------------+  |                    |    |chromosome   |
-  |* prot_dom_end         |  +-^+* protein_id      |  |                    |    +-------------+
-  +-----------------------+  |  |* tx_id           +--+                    +----+* seq_name   |
-                             |  |* protein_sequence|                            |* seq_length |
-  +----------------------+   |  +------------------+                            |* is_circular|
-  |uniprot               |   |                           +----------+           +-------------+
-  +----------------------+   |                           |metadata  |
-  |* uniprot_id          |   |                           |          |
-  |* protein_id          +---+                           |* name    |
-  |* uniprot_db          |                               |* value   |
-  |* uniprot_mapping_type|                               +----------+
-  +----------------------+
+    +-----------------+          +-----------+        +------------------+     +------------------+
+    |exon             |          |tx2exon    |        |tx                |     |gene              |
+    +-----------------+          +-----------+        +------------------+     +------------------+
+    |* exon_id        +----+     |* tx_id    +----+---+* tx_id           |  +--+* gene_id         |
+    |* exon_seq_start |    +-----+* exon_id  |    |   |* gene_id         +--+  |* gene_name       |
+    |* exon_seq_end   |          +-----------+    |   |* tx_biotype      |     |* gene_biotype    |
+    +-----------------+                           |   |* tx_seq_start    |     |* entrezid        |
+               	       	       	       	       	  |   |* tx_seq_end      |     |* gene_seq_start  |
+                				  |   |* tx_cds_seq_start|     |* gene_seq_end    |
+    +-----------------------+                     |   |* tx_cds_seq_end  |  +--+* seq_name        |
+    |protein_domain         |                     |   +------------------+  |  |* seq_strand      |
+    +-----------------------+                     |                         |  |* seq_coord_system|
+    |* protein_domain_id    |                     +-----+                   |  +------------------+
+    |* protein_id           +--+                        |                   |
+    |* protein_domain_source|  |  +------------------+  |                   |
+    |* interpro_accession   |  |  |protein           |  |                   |    +-------------+
+    |* prot_dom_start       |  |  +------------------+  |                   |    |chromosome   |
+    |* prot_dom_end         |  +--+* protein_id      |  |                   |    +-------------+
+    +-----------------------+  |  |* tx_id           +--+                   +----+* seq_name   |
+                               |  |* protein_sequence|                           |* seq_length |
+    +-----------------------+  |  +------------------+                           |* is_circular|
+    |uniprot                |  |                           +----------+          +-------------+
+    +-----------------------+  |                           |metadata  |
+    |* uniprot_id           |  |                           +----------+
+    |* protein_id           +--+                           |* name    |
+    |* uniprot_db           |                              |* value   |
+    |* uniprot_mapping_type |                              +----------+
+    +-----------------------+
 
-#+END_SRC
+  #+END_SRC
 
-#+RESULTS:
-[[file:dblayout.png]]
-
+    #+RESULTS:
+    [[file:dblayout.png]]
 
 
 ** Basic usage
@@ -77,12 +78,14 @@
     ## Load an EnsDb package matching Ensembl version 86
     library(EnsDb.Hsapiens.v86)
     edb <- EnsDb.Hsapiens.v86
-    ## Retrieve genes encoded on chromosome Y.
-    ## Create a filter object
+
+    ## Retrieve all lincRNAs encoded on chromosome Y.
+    ## Create the filter objects
     sf <- SeqnameFilter("Y")
+    gbf <- GenebiotypeFilter("lincRNA")
 
     ## Retrieve the data.
-    genes(edb, filter=sf)
+    genes(edb, filter = list(sf, gbf))
 
   #+END_SRC
 
@@ -121,9 +124,170 @@
 
   #+END_SRC
 
-*** =ensembldb= and the =AnnotationDbi= API
 
-+ =EnsDb= support all =AnnotationDbi= methods *with filters*.
+** Building annotation databases
+
++ =EnsDb= databases can be build from GTF/GFF files or =AnnotationHub=.
++ _Example_: create an =EnsDb= using =AnnotationHub=.
+
+  #+BEGIN_SRC R :results silent :exports code :eval never
+
+    library(AnnotationHub)
+    ah <- AnnotationHub()
+
+    ## Query for available Ensembl gtf files for release 83.
+    query(ah, pattern=c("ensembl", "release-83", "gtf"))
+
+    ## Select one; in this case: Anolis carolinensis (lizard)
+    edbSql83 <- ensDbFromAH(ah=ah["AH50353"])
+
+    ## Let's see what we've got.
+    db <- EnsDb(edbSql83)
+    genes(db, filter=SeqnameFilter("2"))
+
+    ## Make a package.
+    makeEnsembldbPackage(ensdb=edbSql83, version="1.0.0",
+                         maintainer="Johannes Rainer <johannes.rainer@eurac.edu>",
+                         author="J Rainer")
+
+  #+END_SRC
+
++ *Preferred way*: using the Ensembl Perl API:
+  - Allows to fetch also protein annotations.
+  - Requirements: Perl, Bioperl, Ensembl Perl API.
+
+
+** MySQL backend
+
++ =useMySQL= method switches from SQLite to MySQL backend:
+  - Creates the database if it does not exist (or updates it).
+  - Loads the database if already available.
+
++ _Example_: convert SQLite to MySQL database.
+  #+BEGIN_SRC R :results silent :exports code
+    ## Re-use the database from before
+    db
+
+    ## Create a MySQL database for this EnsDb; entering the data requires rw
+    ## access to MySQL, if database exists read only access suffices.
+    db_my <- useMySQL(db, host = "localhost", user = "anonuser", pass = "")
+
+    ## Get the connection
+    dbconn(db_my)
+    dbconn(db)
+
+    genes(db_my, filter = SeqnameFilter(2))
+
+  #+END_SRC
+
++ MySQL backend enables to have a dedicated, central annotation server.
+
++ _Example_: list and connect to existing databases.
+  #+BEGIN_SRC R :results silent :exports code
+    ## Connect to the MySQL database server.
+    library(RMySQL)
+    dbc <- dbConnect(MySQL(), host = "localhost", user = "anonuser", pass = "")
+
+    ## list all available EnsDb databases.
+    listEnsDbs(dbc)
+
+    ## Connect to one of the databases.
+    dbc <- dbConnect(MySQL(), host = "localhost", user = "anonuser", pass = "",
+                     dbname = "ensdb_dmelanogaster_v86")
+    edb <- EnsDb(dbc)
+    edb
+
+    genes(edb)
+  #+END_SRC
+
+
+** Protein data
+*** Fetch protein data from an =EnsD=.
+
++ Add protein columns to the =columns= parameter.
+
++ _Example_: get protein annotations for a gene.
+
+  #+BEGIN_SRC R :results silent :exports code
+    library(EnsDb.Hsapiens.v86)
+    edb <- EnsDb.Hsapiens.v86
+
+    ## Get protein annotations for genes by adding specific columns:
+    genes(edb, filter = GenenameFilter("ZBTB16"), columns = c("uniprot_id"))
+
+    ## To list all available protein related columns:
+    listProteinColumns(edb)
+
+    ## Get all genes with a C2H2 Zinc finger domain.
+    pfam <- ProtdomidFilter("PF13912")
+    genes(edb, filter = pfam, columns = "gene_name")
+  #+END_SRC
+
++ =proteins= method to specifically fetch protein data.
+
++ _Example_: use the =proteins= method.
+
+  #+BEGIN_SRC R
+    ## Return the protein annotation as a AAStringSet:
+    prts <- proteins(edb, filter = GenenameFilter("ZBTB16"),
+                     return.type = "AAStringSet")
+    prts
+
+    ## Additional columns are available as mcols:
+    mcols(prts)
+  #+END_SRC
+
++ Note: due to the n:m mapping between Ensembl protein ID and Uniprot ID
+  redundant results might be returned from the database.
+
+*** Using =ensembldb= with =Pbase=
+
++ The =Proteins= object: container for proteins and peptide ranges within the AA
+  sequence.
+
++ _Example_: fetch a =Proteins= object for all ZBTB16 proteins including all protein
+  domains.
+
+  #+BEGIN_SRC R
+    library(Pbase)
+
+    ## Fetch proteins including protein domains for ZBTB16
+    prts <- Proteins(edb, filter = GenenameFilter("ZBTB16"))
+
+    ## Amino acid sequence:
+    aa(prts)
+
+    ## Peptide features:
+    pranges(prts)
+  #+END_SRC
+
++ _Example_: use =ensembldb= to map peptide features to the genome.
+
+  #+BEGIN_SRC R
+    ## Map all protein domains to the genome
+    gen_map <- mapToGenome(prts, edb)
+
+    ## Plot the results for the first protein (transcript)
+    ## Get the gene region track for the first transcript
+    tx <- getGeneRegionTrackForGviz(edb, filter = TxidFilter(gen_map[[1]]$tx_id))
+
+    ## Add a protein ID column
+    map_1 <- gen_map[[1]]
+    map_1$id <- names(map_1)
+
+    ## Plot using Gviz
+    library(Gviz)
+    plotTracks(list(GenomeAxisTrack(),
+                    GeneRegionTrack(tx, name = "tx"),
+                    AnnotationTrack(map_1, groupAnnotation = "id",
+                                    just.group = "above",
+                                    name = "Protein domains")),
+               transcriptAnnotation = "transcript")
+  #+END_SRC
+
+
+** Things not covered
++ =ensembldb= provides full =AnnotationDbi= support.
 + _Example_: use =AnnotationDbi='s =select= method to fetch annotations.
 
   #+BEGIN_SRC R
@@ -139,58 +303,8 @@
                           ExonrankFilter(1:2, condition="!=")))
 
   #+END_SRC
-
-*** Annotation for feature counting
-
-+ =exonsBy=: provide gene model information for feature counting.
-
-+ _Example_: feature counting using =GenomicAlignments=' =summarizeOverlaps= method.
-
-  #+BEGIN_SRC R :eval never :ravel eval=FALSE
-    ## Get exons by gene, for chromosomes 1:22, X, Y, excluding also locus reference
-    ## genomic genes (LRG)
-    exns <- exonsBy(edb, by="gene", filter=list(SeqnameFilter(c(1:22, "X", "Y")),
-                                                GeneidFilter("ENSG%", "like")))
-    exns
-
-    ## Load the required libraries.
-    library(GenomicAlignments)
-    library(BiocParallel)
-
-    ## Get the Bam files.
-    bfl <- BamFileList(dir("data/bam", pattern=".bam$", full.names=TRUE),
-                       asMates=TRUE, yieldSize=1e+6, obeyQname=TRUE)
-    ## Define a ScanBamParam with a mapping quality filter.
-    sbp <- ScanBamParam(mapqFilter=30)
-
-    ## Do the gene counting
-    geneCounts <- bplapply(bfl, FUN=summarizeOverlaps, features=exns,
-                           mode="IntersectionStrict", ignore.strand=TRUE,
-                           singleEnd=FALSE, fragments=TRUE, param=sbp)
-    geneCounts <- do.call(cbind, geneCounts)
-
-
-  #+END_SRC
-
-+ _Example_: gene models for =Rsubread='2 =featureCount= function.
-
-  #+BEGIN_SRC R :eval never :ravel eval=FALSE
-    ## Convert the exon list to SAF format
-    saf <- toSAF(exns)
-
-    head(saf)
-
-    ####
-    ##  Do the feature counting using the Rsubread package
-    library(Rsubread)
-    bamf <- dir("data/bam", pattern=".bam$", full.names=TRUE)
-    cnts <- featureCounts(files=bamf, annot.ext=saf, isPairedEnd=TRUE, nthreads=1)
-
-  #+END_SRC
-
-*** Integrating UCSC and Ensembl annotations
-
-+ UCSC and Ensembl use different chromosome naming styles.
++ Easy integration of UCSC and Ensembldb annotations: use =seqlevelsStyle= to
+  change chromosome naming scheme in =EnsDb=.
 + _Example_: How to integrate Ensembl based annotation with UCSC data?
 
   #+BEGIN_SRC R
@@ -230,152 +344,8 @@
                                        filter=GenenameFilter("SKA2")))
   #+END_SRC
 
-+ Sequence names are mapped between /styles/ using the =GenomeInfoDb= package.
 
-*** Plotting support
-
-+ =ggbio= and =Gviz=: plot data along genomic coordinates.
-
-+ =ggbio=: support for =EnsDb= objects *and filters* integrated.
-+ _Example_: use =ggbio= and =ensembldb= to plot a chromosomal region.
-
-  #+NAME: usage-ggbio
-  #+BEGIN_SRC R :results output graphics :file ggbio-ska2.pdf :exports both :width 8 :height 6
-    library(ggbio)
-
-    ## Plot the SKA2 gene model by passing a filter to the function.
-    autoplot(edb, GenenameFilter("SKA2"))
-
-    ## To plot all genes in the region:
-    ## Get the gene SKA2
-    ska2 <- genes(edb, filter=GenenameFilter("SKA2"))
-    strand(ska2) <- "*"
-
-    ## Plot the genomic region; we're using the gene name as labels for the transcripts.
-    autoplot(edb, GRangesFilter(ska2, condition="overlapping"),
-             names.expr="gene_name")
-
-  #+END_SRC
-
-+ =Gviz=: =getGeneRegionTrackForGviz= method to extract =Gviz=-formatted data.
-+ _Example_: plot genes encoded on a chromosomal region using =Gviz=.
-
-  #+NAME: usage-gviz
-  #+BEGIN_SRC R :results output graphics :file gviz-ska.pdf :exports both :width 8 :height 6
-    library(Gviz)
-    ## Get all genes in the same genomic region
-    ska2 <- genes(edb, filter=GenenameFilter("SKA2"))
-    strand(ska2) <- "*"
-
-    grt <- getGeneRegionTrackForGviz(edb, filter=GRangesFilter(ska2,
-                                                               condition="overlapping"))
-    geneTrack <- GeneRegionTrack(grt)
-    ## Plot the chromosomal region.
-    plotTracks(list(GenomeAxisTrack(), geneTrack), transcriptAnnotation="symbol")
-  #+END_SRC
-
-*** The =ensembldb= shiny app
-
-+ The =ensembldb= shiny app allows interactive annotation look-up.
-+ _Example_: search for a gene using the shiny app and return the result to R.
-
-  #+BEGIN_SRC R :eval never :ravel eval=FALSE
-    ## Run the shiny app:
-    Result <- runEnsDbApp()
-
-    ## Inspect the result:
-    Result
-#+END_SRC
-
-
-** Building annotation databases
-
-*** The easiest way: with =AnnotationHub=
-
-+ =ensDbFromAH=: build an =EnsDb= database from an =AnnotationHub= (gtf) resource.
-+ _Example_: create an =EnsDb= using =AnnotationHub=.
-
-  #+BEGIN_SRC R :results silent :exports code :eval never
-
-    library(AnnotationHub)
-    ah <- AnnotationHub()
-
-    ## Query for available Ensembl gtf files for release 83.
-    query(ah, pattern=c("ensembl", "release-83", "gtf"))
-
-    ## Select one; in this case: Anolis carolinensis (lizard)
-    edbSql83 <- ensDbFromAH(ah=ah["AH7537"])
-
-    ## Let's see what we've got.
-    db <- EnsDb(edbSql83)
-    genes(db, filter=SeqnameFilter("2"))
-
-    ## Make a package.
-    makeEnsembldbPackage(ensdb=edbSql83, version="1.0.0",
-                         maintainer="Johannes Rainer <johannes.rainer@eurac.edu>",
-                         author="J Rainer")
-
-  #+END_SRC
-
-+ *But*: no NCBI Entrez Gene IDs available.
-
-*** The easy way: from gtf and gff files
-
-+ =ensDbFromGtf=: create an =EnsDb= from a /gtf/ or /gff/ file.
-+ /Should/ work with all gtf and gff files from Ensembl.
-+ *But*: gtf files don't provide NCBI Entrez Gene IDs.
-+ _Example_: create an =EnsDb= from a GTF file downloaded from ftp://ftp.ensembl.org.
-
-  #+BEGIN_SRC R :eval never
-    ## Create an EnsDb from an Ensembl GTF file.
-
-    ## Create the SQLite database file:
-    ##  o Eventually define 'organism' and 'genomeVersion'.
-    ##  o Needs also an internet connection to retrieve the 'seqlengths'.
-    edbSql <- ensDbFromGtf("data/gtf/Canis_familiaris.CanFam3.1.84.gtf.gz")
-
-    edbSql
-
-    ## Use the makeEnsembldbPackage to create a package, or load and use it.
-    dogDb <- EnsDb(edbSql)
-
-    dogDb
-
-    ## Fully functional, except we don't have Entrez gene ids.
-    head(genes(dogDb, filter=SeqnameFilter("X")))
-  #+END_SRC
-
-*** The hard way: using Ensembl's Perl API
-
-+ Requires:
-  - Perl.
-  - Ensembl Perl API (and Bioperl).
-
-+ =fetchTablesFromEnsembl= to fetch the annotations from Ensembl.
-+ =makeEnsemblSQLiteFromTables= to create the SQLite database from the tables.
-+ =makeEnsembldbPackage= to create a package containing and providing the
-  annotation.
-+ _Example_: create an =EnsDb= using the Perl API.
-
-  #+BEGIN_SRC R :eval never :ravel eval=FALSE
-    ## Create an EnsDb using the Ensembl Perl API:
-
-    ## This takes quite some time...
-    fetchTablesFromEnsembl(version="81",
-                           ensemblapi="/Users/jo/ensembl/81/API/ensembl/modules",
-                           species="dog")
-
-    ## Create an SQLite database from the generated txt files
-    dbf <- makeEnsemblSQLiteFromTables()
-
-    ## Finally, create the package
-    makeEnsembldbPackage(ensdb=dbf, version="1.0.0",
-                         maintainer="Johannes Rainer <johannes.rainer@eurac.edu>",
-                         author="Johannes Rainer")
-  #+END_SRC
-
-
-** Finally...
+** Finally
 
 
 *Thank you for your attention!*
