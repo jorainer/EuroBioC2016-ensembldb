@@ -1,21 +1,22 @@
 # setup file with some org settings.
 #+OPTIONS: ^:{} toc:4 H:4 num:4 author:t email:t
-#+PROPERTY: header-args :exports both
-#+PROPERTY: header-args :noweb yes
-#+PROPERTY: header-args :results output verbatim
-#+PROPERTY: header-args :tangle yes
+#+PROPERTY: header-args:R :exports both
+#+PROPERTY: header-args:R :noweb yes
+#+PROPERTY: header-args:R :results output pp
+#+PROPERTY: header-args:R :tangle yes
 #+PROPERTY: header-args:R :session *R_EuroBioC2016*
 
 # LaTeX stuff
 #+LATEX_HEADER: \usepackage[backend=bibtex,style=chem-rsc,hyperref=true]{biblatex}
 #+LATEX_HEADER: \usepackage{parskip}
 
-#+LATEX_HEADER: \setlength{\textwidth}{17.0cm}
-#+LATEX_HEADER: \setlength{\hoffset}{-2.5cm}
-#+LATEX_HEADER: \setlength{\textheight}{22cm}
-#+LATEX_HEADER: \setlength{\voffset}{-1.5cm}
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [presentation,smaller]
+#+BEAMER_THEME: default
+#+BEAMER_INNER_THEME: circles
+#+COLUMNS: %40ITEM %10BEAMER_env(Env) %9BEAMER_envargs(Env Args) %4BEAMER_col(Col) %10BEAMER_extra(Extra)
+#+OPTIONS: toc:nil
 
-#+LATEX_HEADER: \addbibresource{~/Documents/Unison/bib/references.bib}
 #+LATEX_HEADER: \usepackage{inconsolata}
 #+LATEX_HEADER: \definecolor{lightgrey}{HTML}{F0F0F0}
 #+LATEX_HEADER: \definecolor{solarizedlightbg}{HTML}{FCF4DC}
@@ -26,5 +27,8 @@
 #+LATEX_HEADER:   {}{}
 #+LATEX_HEADER: \makeatother
 
+
+# #+LATEX_HEADER: \newminted{R}{fontsize=\footnotesize}
+
 #+STARTUP: overview
-#+STARTUP: indent
+#+STARTUP: beamer

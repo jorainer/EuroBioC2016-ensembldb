@@ -2,22 +2,24 @@
 #+AUTHOR: Johannes Rainer
 #+EMAIL: johannes.rainer@eurac.edu
 #+DATE: December 7, 2016
-#+SETUPFILE: orgsetup.org
+#+SETUPFILE: orgsetup-beamer.org
 
 * Extending =ensembldb=: MySQL backend and protein annotations
 
-*Johannes Rainer* (EURAC research), EuroBioC2016, Basel
+EuroBioC2016, Basel
 
-Twitter/github: /jotsetung/.
+*Johannes Rainer* (EURAC research, Italy); twitter/github: /jotsetung/.
+*Sebastian Gibb*
+*Laurent Gatto* (CPU Cambridge, UK)
 
 ** Introduction
 
 + =ensembldb= package defines the =EnsDb= class:
   - Same functionality than =TxDb= objects (=GenomicFeatures= package), *plus*:
   - Filter framework to enable specific and fast queries.
-  - Designed for Ensembl:
-  - *NEW*: supports a /MySQL/ backend.
-  - *NEW*: provides protein annotations.
+  - Designed for Ensembl: gene and transcript biotypes.
+  - *NEW*: /MySQL/ backend support.
+  - *NEW*: provide protein annotations.
 
 + Full Database layout
 
@@ -26,36 +28,53 @@ Twitter/github: /jotsetung/.
     +-----------------+          +-----------+        +------------------+     +------------------+
     |exon             |          |tx2exon    |        |tx                |     |gene              |
     +-----------------+          +-----------+        +------------------+     +------------------+
-    |* exon_id        +----+     |* tx_id    +----+---+* tx_id           |  +--+* gene_id         |
-    |* exon_seq_start |    +-----+* exon_id  |    |   |* gene_id         +--+  |* gene_name       |
-    |* exon_seq_end   |          +-----------+    |   |* tx_biotype      |     |* gene_biotype    |
-    +-----------------+                           |   |* tx_seq_start    |     |* entrezid        |
-               	       	       	       	       	  |   |* tx_seq_end      |     |* gene_seq_start  |
-                				  |   |* tx_cds_seq_start|     |* gene_seq_end    |
-    +-----------------------+                     |   |* tx_cds_seq_end  |  +--+* seq_name        |
-    |protein_domain         |                     |   +------------------+  |  |* seq_strand      |
-    +-----------------------+                     |                         |  |* seq_coord_system|
-    |* protein_domain_id    |                     +-----+                   |  +------------------+
-    |* protein_id           +--+                        |                   |
-    |* protein_domain_source|  |  +------------------+  |                   |
-    |* interpro_accession   |  |  |protein           |  |                   |    +-------------+
-    |* prot_dom_start       |  |  +------------------+  |                   |    |chromosome   |
-    |* prot_dom_end         |  +--+* protein_id      |  |                   |    +-------------+
-    +-----------------------+  |  |* tx_id           +--+                   +----+* seq_name   |
-                               |  |* protein_sequence|                           |* seq_length |
-    +-----------------------+  |  +------------------+                           |* is_circular|
+    |- exon_id        +----+     |-	tx_id    +----+---+- tx_id           |  +--+- gene_id         |
+    |- exon_seq_start |    +-----+- exon_id  |    |   |- gene_id         +--+  |- gene_name       |
+    |- exon_seq_end   |          +-----------+    |   |- tx_biotype      |     |- gene_biotype    |
+    +-----------------+                           |   |- tx_seq_start    |     |- entrezid        |
+                                               	  |   |- tx_seq_end      |     |- gene_seq_start  |
+        					  |   |- tx_cds_seq_start|     |- gene_seq_end    |
+    +-----------------------+                     |   |- tx_cds_seq_end  |  +--+- seq_name        |
+    |protein_domain         |                     |   +------------------+  |  |- seq_strand      |
+    +-----------------------+                     |                         |  |- seq_coord_system|
+    |- protein_domain_id    |                     +-----+                   |  +------------------+
+    |- protein_id           +--+                        |                   |
+    |- protein_domain_source|  |  +------------------+  |                   |
+    |- interpro_accession   |  |  |protein           |  |                   |    +-------------+
+    |- prot_dom_start       |  |  +------------------+  |                   |    |chromosome   |
+    |- prot_dom_end         |  +--+- protein_id      |  |                   |    +-------------+
+    +-----------------------+  |  |- tx_id           +--+                   +----+- seq_name   |
+                               |  |- protein_sequence|                           |- seq_length |
+    +-----------------------+  |  +------------------+                           |- is_circular|
     |uniprot                |  |                           +----------+          +-------------+
     +-----------------------+  |                           |metadata  |
-    |* uniprot_id           |  |                           +----------+
-    |* protein_id           +--+                           |* name    |
-    |* uniprot_db           |                              |* value   |
-    |* uniprot_mapping_type |                              +----------+
+    |- uniprot_id           |  |                           +----------+
+    |- protein_id           +--+                           |- name    |
+    |- uniprot_db           |                              |- value   |
+    |- uniprot_mapping_type |                              +----------+
     +-----------------------+
-
   #+END_SRC
 
-    #+RESULTS:
-    [[file:dblayout.png]]
++ Reduced layout
+
+  #+BEGIN_SRC ditaa :file dblayout-simple.png
+
+
+    +----------+    +---------+     +-------+     +--------+
+    | exons    |----| tx2exon |--+--| tx    |--+--| gene   |
+    +----------+    +---------+  |  +-------+  |  +--------+
+                                 |             |
+                                 |             |  +------------+
+                +-----------+    |             +--| chromosome |
+                | protein   |----+                +------------+
+                +-----------+
+                      |
+             +--------+--------+
+             |                 |                  +------------+
+    +----------------+   +-----------+            | metadata   |
+    | protein_domain |   | uniprot   |            +------------+
+    +----------------+   +-----------+
+#+END_SRC
 
 
 ** Basic usage
@@ -74,7 +93,7 @@ Twitter/github: /jotsetung/.
 
 + _Example_: get all genes encoded on chromosome Y.
 
-  #+BEGIN_SRC R
+  #+BEGIN_SRC R :results output pp
     ## Load an EnsDb package matching Ensembl version 86
     library(EnsDb.Hsapiens.v86)
     edb <- EnsDb.Hsapiens.v86
@@ -89,7 +108,9 @@ Twitter/github: /jotsetung/.
 
   #+END_SRC
 
+
 - Use of filters can speed up queries.
+
 
 *** Available filters
 
@@ -97,7 +118,7 @@ Twitter/github: /jotsetung/.
   (=SymbolFilter=).
 - For transcripts: =TxidFilter=, =TxbiotypeFilter=.
 - For exons: =ExonidFilter=, =ExonrankFilter=.
-- For proteins: =ProteinidFilter=, =UniprotidFilter=, =UniprotdbFilter=,
+- *NEW*: for proteins: =ProteinidFilter=, =UniprotidFilter=, =UniprotdbFilter=,
   =UniprotmappingtypeFilter=, =ProteindomainidFilter=.
 - Based on chromosomal coordinates: =SeqnameFilter=, =SeqstrandFilter=,
   =SeqstartFilter=, =SeqendFilter=, =GRangesFilter=: condition can be /within/ or
@@ -108,7 +129,7 @@ Twitter/github: /jotsetung/.
 
 - _Example_: combine filters.
 
-  #+BEGIN_SRC R
+  #+BEGIN_SRC R :results output pp
     ## Example for a GRangesFilter:
     grf <- GRangesFilter(GRanges(17, IRanges(59000000, 59200000)),
                          condition="within")
@@ -128,6 +149,7 @@ Twitter/github: /jotsetung/.
 ** Building annotation databases
 
 + =EnsDb= databases can be build from GTF/GFF files or =AnnotationHub=.
+
 + _Example_: create an =EnsDb= using =AnnotationHub=.
 
   #+BEGIN_SRC R :results silent :exports code :eval never
@@ -153,18 +175,19 @@ Twitter/github: /jotsetung/.
   #+END_SRC
 
 + *Preferred way*: using the Ensembl Perl API:
-  - Allows to fetch also protein annotations.
+  - Allows to fetch also *protein annotations*.
   - Requirements: Perl, Bioperl, Ensembl Perl API.
 
 
 ** MySQL backend
 
-+ =useMySQL= method switches from SQLite to MySQL backend:
-  - Creates the database if it does not exist (or updates it).
-  - Loads the database if already available.
++ Switch from SQLite to MySQL backend: =useMySQL=.
+  - Creates the database if it does not exist.
+  - Loads the MySQL database if already available.
 
 + _Example_: convert SQLite to MySQL database.
-  #+BEGIN_SRC R :results silent :exports code
+
+  #+BEGIN_SRC R :results output pp
     ## Re-use the database from before
     db
 
@@ -183,7 +206,8 @@ Twitter/github: /jotsetung/.
 + MySQL backend enables to have a dedicated, central annotation server.
 
 + _Example_: list and connect to existing databases.
-  #+BEGIN_SRC R :results silent :exports code
+
+  #+BEGIN_SRC R :results output pp
     ## Connect to the MySQL database server.
     library(RMySQL)
     dbc <- dbConnect(MySQL(), host = "localhost", user = "anonuser", pass = "")
@@ -202,13 +226,15 @@ Twitter/github: /jotsetung/.
 
 
 ** Protein data
+
 *** Fetch protein data from an =EnsD=.
 
 + Add protein columns to the =columns= parameter.
 
-+ _Example_: get protein annotations for a gene.
++ _Example_: get protein annotations for a gene or filter genes by protein
+  annotation.
 
-  #+BEGIN_SRC R :results silent :exports code
+  #+BEGIN_SRC R :results output pp
     library(EnsDb.Hsapiens.v86)
     edb <- EnsDb.Hsapiens.v86
 
@@ -218,6 +244,7 @@ Twitter/github: /jotsetung/.
     ## To list all available protein related columns:
     listProteinColumns(edb)
 
+    ## Use protein annotations in filters
     ## Get all genes with a C2H2 Zinc finger domain.
     pfam <- ProtdomidFilter("PF13912")
     genes(edb, filter = pfam, columns = "gene_name")
@@ -227,7 +254,7 @@ Twitter/github: /jotsetung/.
 
 + _Example_: use the =proteins= method.
 
-  #+BEGIN_SRC R
+  #+BEGIN_SRC R :results output pp
     ## Return the protein annotation as a AAStringSet:
     prts <- proteins(edb, filter = GenenameFilter("ZBTB16"),
                      return.type = "AAStringSet")
@@ -237,18 +264,23 @@ Twitter/github: /jotsetung/.
     mcols(prts)
   #+END_SRC
 
-+ Note: due to the n:m mapping between Ensembl protein ID and Uniprot ID
++ /Note/: due to the n:m mapping between Ensembl protein ID and Uniprot ID
   redundant results might be returned from the database.
+
 
 *** Using =ensembldb= with =Pbase=
 
++ =Pbase=: (Laurent Gatto and Sebastian Gibb): provides classes and functions for
+  the analysis of protein sequence data in proteomics experiments.
+
 + The =Proteins= object: container for proteins and peptide ranges within the AA
-  sequence.
+  sequences.
 
 + _Example_: fetch a =Proteins= object for all ZBTB16 proteins including all protein
   domains.
 
-  #+BEGIN_SRC R
+  #+BEGIN_SRC R :results output pp
+    ## load Pbase - we need the "ensembldb" branch.
     library(Pbase)
 
     ## Fetch proteins including protein domains for ZBTB16
@@ -263,13 +295,14 @@ Twitter/github: /jotsetung/.
 
 + _Example_: use =ensembldb= to map peptide features to the genome.
 
-  #+BEGIN_SRC R
+  #+BEGIN_SRC R :results output graphics :file gviz.png
     ## Map all protein domains to the genome
     gen_map <- mapToGenome(prts, edb)
 
     ## Plot the results for the first protein (transcript)
+    txid <- gen_map[[1]]$tx_id
     ## Get the gene region track for the first transcript
-    tx <- getGeneRegionTrackForGviz(edb, filter = TxidFilter(gen_map[[1]]$tx_id))
+    tx <- getGeneRegionTrackForGviz(edb, filter = TxidFilter(txid))
 
     ## Add a protein ID column
     map_1 <- gen_map[[1]]
@@ -286,11 +319,13 @@ Twitter/github: /jotsetung/.
   #+END_SRC
 
 
+
 ** Things not covered
+
 + =ensembldb= provides full =AnnotationDbi= support.
 + _Example_: use =AnnotationDbi='s =select= method to fetch annotations.
 
-  #+BEGIN_SRC R
+  #+BEGIN_SRC R :results output pp
     ## Get all data for the gene SKA2
     Res <- select(edb, keys="SKA2", keytype="GENENAME")
     head(Res, n=3)
@@ -299,15 +334,16 @@ Twitter/github: /jotsetung/.
     ## For the gene SKA2: get all exons except exons 1 and 2
     ## for all tx targeted for nonsense mediated decay.
     select(edb, keys=list(GenenameFilter("SKA2"),
-                          TxbiotypeFilter("nonsense_mediated_decay"),
-                          ExonrankFilter(1:2, condition="!=")))
+  			TxbiotypeFilter("nonsense_mediated_decay"),
+  			ExonrankFilter(1:2, condition="!=")))
 
   #+END_SRC
+
 + Easy integration of UCSC and Ensembldb annotations: use =seqlevelsStyle= to
   change chromosome naming scheme in =EnsDb=.
 + _Example_: How to integrate Ensembl based annotation with UCSC data?
 
-  #+BEGIN_SRC R
+  #+BEGIN_SRC R :results output pp
     ## Get chromosome names
     head(seqlevels(edb))
     ## Different from UCSC style: chr1...
