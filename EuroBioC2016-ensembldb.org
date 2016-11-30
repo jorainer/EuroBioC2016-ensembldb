@@ -2,7 +2,7 @@
 #+AUTHOR: Johannes Rainer
 #+EMAIL: johannes.rainer@eurac.edu
 #+DATE: December 7, 2016
-#+SETUPFILE: orgsetup-beamer.org
+#+SETUPFILE: orgsetup.org
 
 * Extending =ensembldb=: MySQL backend and protein annotations
 
@@ -17,83 +17,18 @@ EuroBioC2016, Basel
 + =ensembldb= package defines the =EnsDb= class:
   - Same functionality than =TxDb= objects (=GenomicFeatures= package), *plus*:
   - Filter framework to enable specific and fast queries.
-  - Designed for Ensembl: gene and transcript biotypes.
   - *NEW*: /MySQL/ backend support.
   - *NEW*: provide protein annotations.
-
-+ Full Database layout
-
-  #+BEGIN_SRC ditaa :file dblayout.png
-
-    +-----------------+          +-----------+        +------------------+     +------------------+
-    |exon             |          |tx2exon    |        |tx                |     |gene              |
-    +-----------------+          +-----------+        +------------------+     +------------------+
-    |- exon_id        +----+     |-	tx_id    +----+---+- tx_id           |  +--+- gene_id         |
-    |- exon_seq_start |    +-----+- exon_id  |    |   |- gene_id         +--+  |- gene_name       |
-    |- exon_seq_end   |          +-----------+    |   |- tx_biotype      |     |- gene_biotype    |
-    +-----------------+                           |   |- tx_seq_start    |     |- entrezid        |
-                                               	  |   |- tx_seq_end      |     |- gene_seq_start  |
-        					  |   |- tx_cds_seq_start|     |- gene_seq_end    |
-    +-----------------------+                     |   |- tx_cds_seq_end  |  +--+- seq_name        |
-    |protein_domain         |                     |   +------------------+  |  |- seq_strand      |
-    +-----------------------+                     |                         |  |- seq_coord_system|
-    |- protein_domain_id    |                     +-----+                   |  +------------------+
-    |- protein_id           +--+                        |                   |
-    |- protein_domain_source|  |  +------------------+  |                   |
-    |- interpro_accession   |  |  |protein           |  |                   |    +-------------+
-    |- prot_dom_start       |  |  +------------------+  |                   |    |chromosome   |
-    |- prot_dom_end         |  +--+- protein_id      |  |                   |    +-------------+
-    +-----------------------+  |  |- tx_id           +--+                   +----+- seq_name   |
-                               |  |- protein_sequence|                           |- seq_length |
-    +-----------------------+  |  +------------------+                           |- is_circular|
-    |uniprot                |  |                           +----------+          +-------------+
-    +-----------------------+  |                           |metadata  |
-    |- uniprot_id           |  |                           +----------+
-    |- protein_id           +--+                           |- name    |
-    |- uniprot_db           |                              |- value   |
-    |- uniprot_mapping_type |                              +----------+
-    +-----------------------+
-  #+END_SRC
-
-+ Reduced layout
-
-  #+BEGIN_SRC ditaa :file dblayout-simple.png
-
-
-    +----------+    +---------+     +-------+     +--------+
-    | exons    |----| tx2exon |--+--| tx    |--+--| gene   |
-    +----------+    +---------+  |  +-------+  |  +--------+
-                                 |             |
-                                 |             |  +------------+
-                +-----------+    |             +--| chromosome |
-                | protein   |----+                +------------+
-                +-----------+
-                      |
-             +--------+--------+
-             |                 |                  +------------+
-    +----------------+   +-----------+            | metadata   |
-    | protein_domain |   | uniprot   |            +------------+
-    +----------------+   +-----------+
-#+END_SRC
 
 
 ** Basic usage
 
 *** Query gene, transcript, exon information
 
-+ Available methods to extract RNA related data:
-  - =genes=
-  - =transcripts=
-  - =transcriptsBy=
-  - =exons=
-  - =exonsBy=
-  - =cdsBy=
-  - =fiveUTRsByTranscripts=
-  - =threeUTRsByTranscripts=
-
-+ _Example_: get all genes encoded on chromosome Y.
++ _Example_: get all lincRNA genes encoded on chromosome Y.
 
   #+BEGIN_SRC R :results output pp
+
     ## Load an EnsDb package matching Ensembl version 86
     library(EnsDb.Hsapiens.v86)
     edb <- EnsDb.Hsapiens.v86
@@ -108,8 +43,16 @@ EuroBioC2016, Basel
 
   #+END_SRC
 
-
-- Use of filters can speed up queries.
++ Available methods to extract data:
+  - =genes=
+  - =transcripts=
+  - =transcriptsBy=
+  - =exons=
+  - =exonsBy=
+  - =cdsBy=
+  - =fiveUTRsByTranscripts=
+  - =threeUTRsByTranscripts=
+  - *NEW* =proteins=
 
 
 *** Available filters
@@ -119,31 +62,14 @@ EuroBioC2016, Basel
 - For transcripts: =TxidFilter=, =TxbiotypeFilter=.
 - For exons: =ExonidFilter=, =ExonrankFilter=.
 - *NEW*: for proteins: =ProteinidFilter=, =UniprotidFilter=, =UniprotdbFilter=,
-  =UniprotmappingtypeFilter=, =ProteindomainidFilter=.
+  =UniprotmappingtypeFilter=, =ProtdomidFilter=.
 - Based on chromosomal coordinates: =SeqnameFilter=, =SeqstrandFilter=,
   =SeqstartFilter=, =SeqendFilter=, =GRangesFilter=: condition can be /within/ or
   /overlapping/.
 
 - Multiple filters are combined with a logical /AND/.
 - Each filter supports 1:n values and also a /like/ condition.
-
-- _Example_: combine filters.
-
-  #+BEGIN_SRC R :results output pp
-    ## Example for a GRangesFilter:
-    grf <- GRangesFilter(GRanges(17, IRanges(59000000, 59200000)),
-                         condition="within")
-
-    ## Get all genes encoded in this region.
-    genes(edb, filter=grf, columns=c("gene_name", "gene_biotype"))
-
-    ## Combine with a GenebiotypeFilter to get all genes in the region
-    ## EXCEPT pre-miRNAs and snRNAs.
-    genes(edb, filter=list(grf,
-                           GenebiotypeFilter(c("miRNA", "snRNA"),
-                                             condition="!=")))
-
-  #+END_SRC
+- Filters speed up queries.
 
 
 ** Building annotation databases
@@ -175,17 +101,18 @@ EuroBioC2016, Basel
   #+END_SRC
 
 + *Preferred way*: using the Ensembl Perl API:
-  - Allows to fetch also *protein annotations*.
+  - =fetchTablesFromEnsembl= and =makeEnsemblSQLiteFromTables=.
+  - Fetches also *protein annotations*.
   - Requirements: Perl, Bioperl, Ensembl Perl API.
 
 
 ** MySQL backend
 
-+ Switch from SQLite to MySQL backend: =useMySQL=.
++ Store an =EnsDb= database to or load one from a MySQL server: =useMySQL=.
   - Creates the database if it does not exist.
   - Loads the MySQL database if already available.
 
-+ _Example_: convert SQLite to MySQL database.
++ _Example_: =useMySQL= to insert an =EnsDb= to a MySQL server.
 
   #+BEGIN_SRC R :results output pp
     ## Re-use the database from before
@@ -203,9 +130,7 @@ EuroBioC2016, Basel
 
   #+END_SRC
 
-+ MySQL backend enables to have a dedicated, central annotation server.
-
-+ _Example_: list and connect to existing databases.
++ _Example_: =listEnsDbs= to list =EnsDb= databases from an MySQL server.
 
   #+BEGIN_SRC R :results output pp
     ## Connect to the MySQL database server.
@@ -224,10 +149,12 @@ EuroBioC2016, Basel
     genes(edb)
   #+END_SRC
 
++ MySQL backend enables to have a dedicated, central annotation server.
+
 
 ** Protein data
 
-*** Fetch protein data from an =EnsD=.
+*** Fetch protein data from an =EnsDb=.
 
 + Add protein columns to the =columns= parameter.
 
@@ -339,7 +266,7 @@ EuroBioC2016, Basel
 
   #+END_SRC
 
-+ Easy integration of UCSC and Ensembldb annotations: use =seqlevelsStyle= to
++ Easy integration of UCSC and Ensembl annotations: use =seqlevelsStyle= to
   change chromosome naming scheme in =EnsDb=.
 + _Example_: How to integrate Ensembl based annotation with UCSC data?
 
