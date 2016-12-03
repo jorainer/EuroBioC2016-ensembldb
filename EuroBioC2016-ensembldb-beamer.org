@@ -1,16 +1,39 @@
 #+TITLE: Extending =ensembldb=: MySQL backend and protein annotations
-#+AUTHOR: Johannes Rainer
+#+AUTHOR: Johannes Rainer (EURAC research, Italy), Sebastian Gibb, Laurent Gatto (CPU Cambridge, UK)
 #+EMAIL: johannes.rainer@eurac.edu
 #+DATE: December 7, 2016
-#+SETUPFILE: orgsetup.org
+#+LATEX_HEADER: \usepackage[backend=bibtex,style=chem-rsc,hyperref=true]{biblatex}
+#+LATEX_HEADER: \usepackage{parskip}
+#+LATEX_HEADER: \addbibresource{~/Documents/Unison/bib/references.bib}
+#+LATEX_HEADER: \usepackage{inconsolata}
+#+LATEX_HEADER: \definecolor{lightgrey}{HTML}{F0F0F0}
+#+LATEX_HEADER: \definecolor{solarizedlightbg}{HTML}{FCF4DC}
+#+LATEX_HEADER: \makeatletter
+#+LATEX_HEADER: \patchcmd{\@verbatim}
+#+LATEX_HEADER:   {\verbatim@font}
+#+LATEX_HEADER:   {\verbatim@font\scriptsize}
+#+LATEX_HEADER:   {}{}
+#+LATEX_HEADER: \makeatother
+
+#+PROPERTY: header-args :exports both
+#+PROPERTY: header-args :noweb yes
+#+PROPERTY: header-args :results output verbatim
+#+PROPERTY: header-args :tangle yes
+#+PROPERTY: header-args:R :session *R_EuroBioC2016*
+
+#+LATEX_CLASS: beamer
+#+LATEX_CLASS_OPTIONS: [presentation,smaller]
+#+BEAMER_THEME: default
+#+BEAMER_COLOR_THEME: eurac
+#+BEAMER_INNER_THEME: circles
+#+COLUMNS: %40ITEM %10BEAMER_env(Env) %9BEAMER_envargs(Env Args) %4BEAMER_col(Col) %10BEAMER_extra(Extra)
+#+OPTIONS: toc:nil
+#+OPTIONS: H:2
+#+OPTIONS: email:nil
+#+OPTIONS: author:t
+
 
 * Extending =ensembldb=: MySQL backend and protein annotations
-
-EuroBioC2016, Basel
-
-*Johannes Rainer* (EURAC research, Italy); twitter/github: /jotsetung/.
-*Sebastian Gibb*
-*Laurent Gatto* (CPU Cambridge, UK)
 
 ** Introduction
 
@@ -25,11 +48,12 @@ EuroBioC2016, Basel
 
 ** Basic usage
 
-*** Query gene, transcript, exon information
++ Available methods to extract data: =genes=, =transcripts=, =transcriptsBy=, =exons=,
+  =exonsBy=, =cdsBy=, =fiveUTRsByTranscripts=, =threeUTRsByTranscripts=, =proteins= (*NEW*).
 
 + _Example_: get all lincRNA genes encoded on chromosome Y.
 
-  #+BEGIN_SRC R :results output pp
+  #+BEGIN_SRC R :exports both :results silent
 
     ## Load an EnsDb package matching Ensembl version 86
     library(EnsDb.Hsapiens.v86)
@@ -45,19 +69,16 @@ EuroBioC2016, Basel
 
   #+END_SRC
 
-+ Available methods to extract data:
-  - =genes=
-  - =transcripts=
-  - =transcriptsBy=
-  - =exons=
-  - =exonsBy=
-  - =cdsBy=
-  - =fiveUTRsByTranscripts=
-  - =threeUTRsByTranscripts=
-  - *NEW* =proteins=
+** Basic usage
 
++ _Example:_ (continued)
 
-*** Available filters
+  #+BEGIN_SRC R :exports both :results output pp
+    ## Retrieve the data.
+    genes(edb, filter = list(sf, gbf))
+  #+END_SRC
+
+** Available filters
 
 - For genes: =GeneidFilter=, =GenenameFilter=, =EntrezidFilter=, =GenebiotypeFilter=,
   (=SymbolFilter=).
@@ -70,18 +91,16 @@ EuroBioC2016, Basel
   /overlapping/.
 
 - Multiple filters are combined with a logical /AND/.
-- Each filter supports 1:n values, /=/, /!=/ and also a /like/ condition.
+- Each filter supports 1:n values and also a /like/ condition.
 - Filters speed up queries.
 
 
 ** Building annotation databases
 
 + *Option A)*: from GTF/GFF files or =AnnotationHub=.
-
 + _Example_: create an =EnsDb= using =AnnotationHub=.
 
   #+BEGIN_SRC R :results silent :exports code :eval never
-
     library(AnnotationHub)
     ah <- AnnotationHub()
 
@@ -91,14 +110,12 @@ EuroBioC2016, Basel
     ## Select one; in this case: Anolis carolinensis (lizard)
     edbSql83 <- ensDbFromAH(ah=ah["AH50353"])
 
-    ## Load the database and use it.
+    ## Load the database.
     db <- EnsDb(edbSql83)
-    genes(db, filter=SeqnameFilter("2"))
 
-    ## Optionally make a package.
+    ## Optional, make a package.
     makeEnsembldbPackage(ensdb=edbSql83, version="1.0.0", author="J Rainer",
                          maintainer="Johannes Rainer <johannes.rainer@eurac.edu>")
-
   #+END_SRC
 
 + *Option B)* (preferred): using the Ensembl Perl API:
@@ -114,82 +131,90 @@ EuroBioC2016, Basel
   - Creates the database if it does not exist.
   - Loads the MySQL database if already available.
 
-+ _Example_: =useMySQL= to insert an =EnsDb= to a MySQL server, =listEnsDb= list all
-  available databases.
++ _Example_: =useMySQL= to insert an =EnsDb= to a MySQL server.
 
   #+BEGIN_SRC R :results output pp
+    ## Re-use the database from before
     db
 
     ## Create a MySQL database for this EnsDb; entering the data requires rw
     ## access to MySQL, if database exists read only access suffices.
     db_my <- useMySQL(db, host = "localhost", user = "anonuser", pass = "")
 
-    ## List all available databases.
+    ## Get the connection
+    dbconn(db_my)
+    dbconn(db)
+
+    genes(db_my, filter = SeqnameFilter(2))
+
+  #+END_SRC
+
+** MySQL backend
+
++ _Example_: connect to =EnsDb= databases on a MySQL server.
+
+  #+BEGIN_SRC R :results output pp :exports both
+    ## Connect to the MySQL database server.
     library(RMySQL)
     dbc <- dbConnect(MySQL(), host = "localhost", user = "anonuser", pass = "")
 
     ## list all available EnsDb databases.
     listEnsDbs(dbc)
-
+  #+END_SRC
+  #+BEGIN_SRC R :results output pp :exports code
     ## Connect to one of the databases.
     dbc <- dbConnect(MySQL(), host = "localhost", user = "anonuser", pass = "",
                      dbname = "ensdb_dmelanogaster_v86")
-    edb_2 <- EnsDb(dbc)
-    edb_2
-
-    genes(edb_2, filter = SeqnameFilter("%Scaff%", condition = "like"))
-
+    edb <- EnsDb(dbc)
   #+END_SRC
 
-+ Enables to have a central, MySQL-based annotation server.
++ MySQL backend enables to have a dedicated, central annotation server.
 
 
-** Protein data
-
-*** Fetch protein data from an =EnsDb=.
+** Protein data: fetch protein data from an =EnsDb=
 
 + Add protein columns to the =columns= parameter.
 
 + _Example_: get protein annotations for a gene or filter by protein annotation.
 
-  #+BEGIN_SRC R :results output pp
+  #+BEGIN_SRC R :results output pp :exports both
     library(EnsDb.Hsapiens.v86)
     edb <- EnsDb.Hsapiens.v86
 
     ## Get all Uniprot IDs annotated to any of the gene's transcripts
     genes(edb, filter = GenenameFilter("ZBTB16"), columns = c("uniprot_id"),
   	return.type = "DataFrame")
+  #+END_SRC
 
-    ## To list all available protein related columns:
-    listProteinColumns(edb)
+** Protein data: fetch protein data from an =EnsDb=
 
-    ## Use protein annotations in filters
++ _Example_: use a protein data filter to retrieve data.
+
+  #+BEGIN_SRC R :results output pp :exports both
     ## Get all genes with a C2H2 Zinc finger domain.
     pfam <- ProtdomidFilter("PF13912")
     genes(edb, filter = pfam, columns = "gene_name",
   	return.type = "DataFrame")
   #+END_SRC
 
+** Protein data: fetch protein data from an =EnsDb=
+
 + =proteins= method to specifically fetch protein data.
 
 + _Example_: use the =proteins= method.
 
-  #+BEGIN_SRC R :results output pp
+  #+BEGIN_SRC R :results output pp :exports both
     ## Return the protein annotation as a AAStringSet:
     prts <- proteins(edb, filter = GenenameFilter("ZBTB16"),
-                     columns = c("tx_id", "tx_biotype"),
                      return.type = "AAStringSet")
     prts
-
+  #+END_SRC
+  #+BEGIN_SRC R :results output pp :exports both
     ## Additional columns are available as mcols:
     mcols(prts)
   #+END_SRC
 
-+ /Note/: due to the n:m mapping between Ensembl protein ID and Uniprot ID
-  redundant results might be returned from the database.
-
-
-*** Using =ensembldb= with =Pbase=
+** Protein data: use =ensembldb= with =Pbase=
 
 + =Pbase=: (Laurent Gatto and Sebastian Gibb): provides classes and functions for
   the analysis of protein sequence data in proteomics experiments.
@@ -200,8 +225,7 @@ EuroBioC2016, Basel
 + _Example_: fetch a =Proteins= object for all ZBTB16 proteins including all protein
   domains.
 
-  #+BEGIN_SRC R :results output pp
-
+  #+BEGIN_SRC R :results output pp :exports both
     ## load Pbase - we need the "ensembldb" branch.
     library(Pbase)
 
@@ -210,16 +234,23 @@ EuroBioC2016, Basel
 
     ## Amino acid sequence:
     aa(prts)
+  #+END_SRC
 
+** Protein data: use =ensembldb= with =Pbase=
++ _Example_: fetch a =Proteins= object for all ZBTB16 proteins including all protein
+  domains (continued).
+  #+BEGIN_SRC R :results output pp :exports both
     ## Peptide features:
     pranges(prts)
   #+END_SRC
 
+** Protein data: use =ensembldb= with =Pbase=
+
 + _Example_: use =ensembldb= to map peptide features to the genome.
 
-  #+BEGIN_SRC R :results output graphics :file gviz.png
-
-    ## Map all protein domains from each protein/tx to the genome
+  #+NAME: map-plot
+  #+BEGIN_SRC R :results output graphics :file gviz.pdf :width 8 :height 5
+    ## Map all protein domains to the genome
     gen_map <- mapToGenome(prts, edb)
 
     ## Plot the results for the first protein (transcript)
@@ -241,6 +272,10 @@ EuroBioC2016, Basel
                transcriptAnnotation = "transcript")
   #+END_SRC
 
+** Protein data: use =ensembldb= with =Pbase=
+
+#+ATTR_LATEX: :center :placement [H] :width 11cm
+[[file:gviz.pdf]]
 
 
 ** Things not covered
@@ -261,6 +296,8 @@ EuroBioC2016, Basel
   			ExonrankFilter(1:2, condition="!=")))
 
   #+END_SRC
+
+** Things not covered
 
 + Easy integration of UCSC and Ensembl annotations: use =seqlevelsStyle= to
   change chromosome naming scheme in =EnsDb=.
