@@ -1,23 +1,33 @@
-Repository providing my material for the
-[[http://scicore.ch/events/eurobioc2016/][European Bioconductor Developer's
+Repository providing my material for the [[http://scicore.ch/events/eurobioc2016/][European Bioconductor Developer's
 Meeting 2016]] in Basel, Switzerland.
+
+As of December 2016 developmental package versions of =ensembldb= and =Pbase= were
+used (https://github.com/jotsetung/ensembldb and
+https://github.com/ComputationalProteomicsUnit/Pbase/tree/ensembldb , /ensembldb/ branch).
+
++ The presentation (as Emacs org-mode file): [[file:EuroBioC2016-ensembldb.org]].
++ The presentation formatted for org-mode to beamer export: [[file:EuroBioC2016-ensembldb-beamer.org]].
+
+Beamer presentation (as pdf) will follow.
 
 * TODOs								   :noexport:
 
 ** DONE Write abstract
    CLOSED: [2016-11-16 Wed 09:18]
    - State "DONE"       from "TODO"       [2016-11-16 Wed 09:18]
-** TODO Create the presentation [0/7]
+** DONE Create the presentation [10/10]
+   CLOSED: [2016-12-04 Sun 18:57]
 
-+ [ ] General introduction
-+ [ ] Database layout with http://asciiflow.com/
-+ [ ] Simple examples to fetch genes/transcripts: show filters.
-+ [ ] Create databases: ideally using Perl API.
-+ [ ] Create mysql database.
-      - Benefit: have one central dedicated server for all EnsDbs.
-      - Performance gain if MySQL configured properly.
-+ [ ] Integrate with UCSC annotations. -> things not covered?
-+ [ ] Fetch protein data: the =proteins= method.
-+ [ ] Using =select=. -> things not covered?
-+ [ ] Integration into =Pbase=.
-+ [ ] Map peptide features to chromosome.
+   - State "DONE"       from "TODO"       [2016-12-04 Sun 18:57]
++ [X] General introduction
++ [X] Database layout with http://asciiflow.com/
++ [X] Simple examples to fetch genes/transcripts: show filters.
++ [X] Create databases: ideally using Perl API.
++ [X] Create mysql database.
+  - Benefit: have one central dedicated server for all EnsDbs.
+  - Performance gain if MySQL configured properly.
++ [X] Integrate with UCSC annotations. -> things not covered?
++ [X] Fetch protein data: the =proteins= method.
++ [X] Using =select=. -> things not covered?
++ [X] Integration into =Pbase=.
++ [X] Map peptide features to chromosome.
