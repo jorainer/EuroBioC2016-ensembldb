@@ -6,7 +6,7 @@
 
 * Extending =ensembldb=: MySQL backend and protein annotations
 
-EuroBioC2016, Basel
+EuroBioC2016, Basel.
 
 *Johannes Rainer* (EURAC research, Italy); twitter/github: /jotsetung/.
 *Sebastian Gibb*
@@ -91,6 +91,8 @@ EuroBioC2016, Basel
     ## Select one; in this case: Anolis carolinensis (lizard)
     edbSql83 <- ensDbFromAH(ah=ah["AH50353"])
 
+    ## BUT: lacks NCBI Entrezgene IDs and protein annotation.
+
     ## Load the database and use it.
     db <- EnsDb(edbSql83)
     genes(db, filter=SeqnameFilter("2"))
@@ -109,35 +111,26 @@ EuroBioC2016, Basel
 
 ** MySQL backend
 
-
-+ Store an =EnsDb= database to or load one from a MySQL server: =useMySQL=.
-  - Creates the database if it does not exist.
-  - Loads the MySQL database if already available.
-
-+ _Example_: =useMySQL= to insert an =EnsDb= to a MySQL server, =listEnsDb= list all
-  available databases.
++ _Example_: =listEnsDb= list all available databases, =useMySQL= to insert an =EnsDb=
+  to a MySQL server.
 
   #+BEGIN_SRC R :results output pp
-    db
 
-    ## Create a MySQL database for this EnsDb; entering the data requires rw
-    ## access to MySQL, if database exists read only access suffices.
-    db_my <- useMySQL(db, host = "localhost", user = "anonuser", pass = "")
-
-    ## List all available databases.
+    ## Load an EnsDb from an MySQL database server.
     library(RMySQL)
     dbc <- dbConnect(MySQL(), host = "localhost", user = "anonuser", pass = "")
 
     ## list all available EnsDb databases.
     listEnsDbs(dbc)
 
-    ## Connect to one of the databases.
+    ## Connect to a database.
     dbc <- dbConnect(MySQL(), host = "localhost", user = "anonuser", pass = "",
                      dbname = "ensdb_dmelanogaster_v86")
     edb_2 <- EnsDb(dbc)
     edb_2
 
-    genes(edb_2, filter = SeqnameFilter("%Scaff%", condition = "like"))
+    ## To insert an EnsDb to a MySQL: useMySQL
+    db_my <- useMySQL(edb, host = "localhost", user = "anonuser", pass = "")
 
   #+END_SRC
 
@@ -150,24 +143,20 @@ EuroBioC2016, Basel
 
 + Add protein columns to the =columns= parameter.
 
-+ _Example_: get protein annotations for a gene or filter by protein annotation.
++ _Example_: get protein annotations for a gene.
 
   #+BEGIN_SRC R :results output pp
+
     library(EnsDb.Hsapiens.v86)
     edb <- EnsDb.Hsapiens.v86
 
-    ## Get all Uniprot IDs annotated to any of the gene's transcripts
-    genes(edb, filter = GenenameFilter("ZBTB16"), columns = c("uniprot_id"),
-  	return.type = "DataFrame")
-
-    ## To list all available protein related columns:
-    listProteinColumns(edb)
-
-    ## Use protein annotations in filters
-    ## Get all genes with a C2H2 Zinc finger domain.
+    ## Get all genes with a C2H2 Zinc finger domain and
+    ## return all of their Uniprot IDs
     pfam <- ProtdomidFilter("PF13912")
-    genes(edb, filter = pfam, columns = "gene_name",
-  	return.type = "DataFrame")
+    genes(edb, filter = pfam, return.type = "DataFrame",
+  	columns = c("gene_name", "uniprot_id"))
+
+
   #+END_SRC
 
 + =proteins= method to specifically fetch protein data.
@@ -184,9 +173,6 @@ EuroBioC2016, Basel
     ## Additional columns are available as mcols:
     mcols(prts)
   #+END_SRC
-
-+ /Note/: due to the n:m mapping between Ensembl protein ID and Uniprot ID
-  redundant results might be returned from the database.
 
 
 *** Using =ensembldb= with =Pbase=
@@ -310,6 +296,7 @@ EuroBioC2016, Basel
 *Thank you for your attention!*
 
 
+https://github.com/jotsetung/EuroBioC2016-ensembldb.git
 
 
 
