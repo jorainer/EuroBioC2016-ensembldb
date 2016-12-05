@@ -134,16 +134,14 @@ EuroBioC2016, Basel.
 
   #+END_SRC
 
-+ Enables to have a central, MySQL-based annotation server.
++ Enables a central, MySQL-based annotation server.
 
 
 ** Protein data
 
 *** Fetch protein data from an =EnsDb=.
 
-+ Add protein columns to the =columns= parameter.
-
-+ _Example_: get protein annotations for a gene.
++ _Example_: add protein columns to the =columns= parameter.
 
   #+BEGIN_SRC R :results output pp
 
@@ -159,11 +157,10 @@ EuroBioC2016, Basel.
 
   #+END_SRC
 
-+ =proteins= method to specifically fetch protein data.
-
-+ _Example_: use the =proteins= method.
++ _Example_: use the =proteins= method to specifically fetch protein data.
 
   #+BEGIN_SRC R :results output pp
+
     ## Return the protein annotation as a AAStringSet:
     prts <- proteins(edb, filter = GenenameFilter("ZBTB16"),
                      columns = c("tx_id", "tx_biotype"),
@@ -183,8 +180,8 @@ EuroBioC2016, Basel.
 + The =Proteins= object: container for proteins and peptide ranges within the AA
   sequences.
 
-+ _Example_: fetch a =Proteins= object for all ZBTB16 proteins including all protein
-  domains.
++ _Example_: fetch a =Proteins= object for all ZBTB16 proteins including their
+  protein domains.
 
   #+BEGIN_SRC R :results output pp
 
@@ -207,6 +204,7 @@ EuroBioC2016, Basel.
 
     ## Map all protein domains from each protein/tx to the genome
     gen_map <- mapToGenome(prts, edb)
+    gen_map
 
     ## Plot the results for the first protein (transcript)
     txid <- gen_map[[1]]$tx_id
@@ -226,7 +224,6 @@ EuroBioC2016, Basel.
                                     name = "Protein domains")),
                transcriptAnnotation = "transcript")
   #+END_SRC
-
 
 
 ** Things not covered
@@ -297,9 +294,6 @@ EuroBioC2016, Basel.
 
 
 https://github.com/jotsetung/EuroBioC2016-ensembldb.git
-
-
-
 
 
 

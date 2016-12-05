@@ -54,7 +54,6 @@
 + _Example_: get all lincRNA genes encoded on chromosome Y.
 
   #+BEGIN_SRC R :exports both :results silent
-
     ## Load an EnsDb package matching Ensembl version 86
     library(EnsDb.Hsapiens.v86)
     edb <- EnsDb.Hsapiens.v86
@@ -63,9 +62,6 @@
     ## Create the filter objects
     sf <- SeqnameFilter("Y")
     gbf <- GenebiotypeFilter("lincRNA")
-
-    ## Retrieve the data.
-    genes(edb, filter = list(sf, gbf))
 
   #+END_SRC
 
@@ -91,7 +87,7 @@
   /overlapping/.
 
 - Multiple filters are combined with a logical /AND/.
-- Each filter supports 1:n values and also a /like/ condition.
+- Each filter supports 1:n values, /=/, /!=/ and also a /like/ condition.
 - Filters speed up queries.
 
 
@@ -103,12 +99,12 @@
   #+BEGIN_SRC R :results silent :exports code :eval never
     library(AnnotationHub)
     ah <- AnnotationHub()
-
     ## Query for available Ensembl gtf files for release 83.
     query(ah, pattern=c("ensembl", "release-83", "gtf"))
 
     ## Select one; in this case: Anolis carolinensis (lizard)
     edbSql83 <- ensDbFromAH(ah=ah["AH50353"])
+    ## BUT: DB lacks NCBI Entrezgene IDs and protein annotation.
 
     ## Load the database.
     db <- EnsDb(edbSql83)
@@ -126,86 +122,50 @@
 
 ** MySQL backend
 
-
-+ Store an =EnsDb= database to or load one from a MySQL server: =useMySQL=.
-  - Creates the database if it does not exist.
-  - Loads the MySQL database if already available.
-
-+ _Example_: =useMySQL= to insert an =EnsDb= to a MySQL server.
-
-  #+BEGIN_SRC R :results output pp
-    ## Re-use the database from before
-    db
-
-    ## Create a MySQL database for this EnsDb; entering the data requires rw
-    ## access to MySQL, if database exists read only access suffices.
-    db_my <- useMySQL(db, host = "localhost", user = "anonuser", pass = "")
-
-    ## Get the connection
-    dbconn(db_my)
-    dbconn(db)
-
-    genes(db_my, filter = SeqnameFilter(2))
-
-  #+END_SRC
-
-** MySQL backend
-
-+ _Example_: connect to =EnsDb= databases on a MySQL server.
++ _Example_: =listEnsDb= list all available databases, =useMySQL= to insert an =EnsDb=
+  to a MySQL server.
 
   #+BEGIN_SRC R :results output pp :exports both
-    ## Connect to the MySQL database server.
     library(RMySQL)
     dbc <- dbConnect(MySQL(), host = "localhost", user = "anonuser", pass = "")
 
     ## list all available EnsDb databases.
     listEnsDbs(dbc)
   #+END_SRC
-  #+BEGIN_SRC R :results output pp :exports code
-    ## Connect to one of the databases.
+
+  #+BEGIN_SRC R :results output pp
+    ## Connect to a database.
     dbc <- dbConnect(MySQL(), host = "localhost", user = "anonuser", pass = "",
                      dbname = "ensdb_dmelanogaster_v86")
-    edb <- EnsDb(dbc)
+    edb_2 <- EnsDb(dbc)
+
+    ## To insert an EnsDb to a MySQL: useMySQL
+    db_my <- useMySQL(edb, host = "localhost", user = "anonuser", pass = "")
   #+END_SRC
 
-+ MySQL backend enables to have a dedicated, central annotation server.
++ Enables a central, MySQL-based annotation server.
 
 
 ** Protein data: fetch protein data from an =EnsDb=
 
-+ Add protein columns to the =columns= parameter.
-
-+ _Example_: get protein annotations for a gene or filter by protein annotation.
++ _Example_: add protein columns to the =columns= parameter.
 
   #+BEGIN_SRC R :results output pp :exports both
-    library(EnsDb.Hsapiens.v86)
-    edb <- EnsDb.Hsapiens.v86
-
-    ## Get all Uniprot IDs annotated to any of the gene's transcripts
-    genes(edb, filter = GenenameFilter("ZBTB16"), columns = c("uniprot_id"),
-  	return.type = "DataFrame")
-  #+END_SRC
-
-** Protein data: fetch protein data from an =EnsDb=
-
-+ _Example_: use a protein data filter to retrieve data.
-
-  #+BEGIN_SRC R :results output pp :exports both
-    ## Get all genes with a C2H2 Zinc finger domain.
+    ## Get all genes with a C2H2 Zinc finger domain and
+    ## return all of their Uniprot IDs
     pfam <- ProtdomidFilter("PF13912")
-    genes(edb, filter = pfam, columns = "gene_name",
-  	return.type = "DataFrame")
+    genes(edb, filter = pfam, return.type = "DataFrame",
+  	columns = c("gene_name", "uniprot_id"))
   #+END_SRC
 
 ** Protein data: fetch protein data from an =EnsDb=
 
-+ =proteins= method to specifically fetch protein data.
-
-+ _Example_: use the =proteins= method.
++ _Example_: use =proteins= method to specifically fetch protein data.
 
   #+BEGIN_SRC R :results output pp :exports both
     ## Return the protein annotation as a AAStringSet:
     prts <- proteins(edb, filter = GenenameFilter("ZBTB16"),
+                     columns = c("tx_id", "tx_biotype"),
                      return.type = "AAStringSet")
     prts
   #+END_SRC
@@ -222,7 +182,7 @@
 + The =Proteins= object: container for proteins and peptide ranges within the AA
   sequences.
 
-+ _Example_: fetch a =Proteins= object for all ZBTB16 proteins including all protein
++ _Example_: fetch a =Proteins= object for all ZBTB16 proteins including their protein
   domains.
 
   #+BEGIN_SRC R :results output pp :exports both
@@ -237,7 +197,7 @@
   #+END_SRC
 
 ** Protein data: use =ensembldb= with =Pbase=
-+ _Example_: fetch a =Proteins= object for all ZBTB16 proteins including all protein
++ _Example_: fetch a =Proteins= object for all ZBTB16 proteins including their protein
   domains (continued).
   #+BEGIN_SRC R :results output pp :exports both
     ## Peptide features:
@@ -281,20 +241,13 @@
 ** Things not covered
 
 + =ensembldb= provides full =AnnotationDbi= support.
-+ _Example_: use =AnnotationDbi='s =select= method to fetch annotations.
++ _Example_: use =AnnotationDbi='s =select= method to fetch annotations: =keys= can be a
+  character list of IDs or a list of filter objects.
 
-  #+BEGIN_SRC R :results output pp
+  #+BEGIN_SRC R :results output pp :exports both
     ## Get all data for the gene SKA2
     Res <- select(edb, keys="SKA2", keytype="GENENAME")
     head(Res, n=3)
-
-    ## Or: pass filters with keys parameter to have more control:
-    ## For the gene SKA2: get all exons except exons 1 and 2
-    ## for all tx targeted for nonsense mediated decay.
-    select(edb, keys=list(GenenameFilter("SKA2"),
-  			TxbiotypeFilter("nonsense_mediated_decay"),
-  			ExonrankFilter(1:2, condition="!=")))
-
   #+END_SRC
 
 ** Things not covered
@@ -303,20 +256,21 @@
   change chromosome naming scheme in =EnsDb=.
 + _Example_: How to integrate Ensembl based annotation with UCSC data?
 
-  #+BEGIN_SRC R :results output pp
-    ## Get chromosome names
+  #+BEGIN_SRC R :results output pp :exports both
+    ## Get chromosome names, they are "Ensembl-formatted"
     head(seqlevels(edb))
-    ## Different from UCSC style: chr1...
-
+  #+END_SRC
+  #+BEGIN_SRC R :results output pp :exports both
     ## Get genes on chromosome Y, UCSC style.
     genes(edb, filter=SeqnameFilter("chrY"))
-
+  #+END_SRC
+  #+BEGIN_SRC R :results output pp :exports both
     ## Solution: change the chromosome naming style:
     seqlevelsStyle(edb) <- "UCSC"
-
     ## Get chromosome names
     head(seqlevels(edb))
-
+  #+END_SRC
+  #+BEGIN_SRC R :results output pp
     genes(edb, filter=SeqnameFilter("chrY"))
 
 
@@ -348,8 +302,17 @@
 
 
 
+https://github.com/jotsetung/EuroBioC2016-ensembldb.git
 
 
+#+BEGIN_SRC R :results silent :exports none
+  ## Clean up.
+  dbDisconnect(dbc)
+
+  rm(list = ls())
+  gc()
+  gc()
+#+END_SRC
 
 
 
