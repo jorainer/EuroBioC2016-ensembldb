@@ -17,7 +17,7 @@ EuroBioC2016, Basel.
 + =ensembldb=: retrieve gene & transcript annotations.
 + =ensembldb= package defines the =EnsDb= class:
   - Wrapper to access annotations from an SQLite database.
-  - Same functionality than the =GenomicFeatures= package (=TxDb= object), *plus*:
+  - Same functionality than the =GenomicFeatures= package (=TxDb= object).
   - Filter framework to enable specific and fast queries.
   - *NEW*: /MySQL/ backend support.
   - *NEW*: provide protein annotations.
@@ -71,7 +71,6 @@ EuroBioC2016, Basel.
 
 - Multiple filters are combined with a logical /AND/.
 - Each filter supports 1:n values, /=/, /!=/ and also a /like/ condition.
-- Filters speed up queries.
 
 
 ** Building annotation databases
@@ -145,14 +144,12 @@ EuroBioC2016, Basel.
 
   #+BEGIN_SRC R :results output pp
 
-    library(EnsDb.Hsapiens.v86)
-    edb <- EnsDb.Hsapiens.v86
-
     ## Get all genes with a C2H2 Zinc finger domain and
     ## return all of their Uniprot IDs
     pfam <- ProtdomidFilter("PF13912")
+
     genes(edb, filter = pfam, return.type = "DataFrame",
-  	columns = c("gene_name", "uniprot_id"))
+        columns = c("gene_name", "uniprot_id"))
 
 
   #+END_SRC
@@ -161,7 +158,8 @@ EuroBioC2016, Basel.
 
   #+BEGIN_SRC R :results output pp
 
-    ## Return the protein annotation as a AAStringSet:
+    ## Fetch all proteins for ZBTB16 return the result
+    ## as a AAStringSet:
     prts <- proteins(edb, filter = GenenameFilter("ZBTB16"),
                      columns = c("tx_id", "tx_biotype"),
                      return.type = "AAStringSet")
@@ -204,7 +202,6 @@ EuroBioC2016, Basel.
 
     ## Map all protein domains from each protein/tx to the genome
     gen_map <- mapToGenome(prts, edb)
-    gen_map
 
     ## Plot the results for the first protein (transcript)
     txid <- gen_map[[1]]$tx_id
@@ -294,25 +291,4 @@ EuroBioC2016, Basel.
 
 
 https://github.com/jotsetung/EuroBioC2016-ensembldb.git
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

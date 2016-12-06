@@ -40,7 +40,7 @@
 + =ensembldb=: retrieve gene & transcript annotations.
 + =ensembldb= package defines the =EnsDb= class:
   - Wrapper to access annotations from an SQLite database.
-  - Same functionality than the =GenomicFeatures= package (=TxDb= object), *plus*:
+  - Same functionality than the =GenomicFeatures= package (=TxDb= object).
   - Filter framework to enable specific and fast queries.
   - *NEW*: /MySQL/ backend support.
   - *NEW*: provide protein annotations.
