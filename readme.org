@@ -8,7 +8,12 @@ https://github.com/ComputationalProteomicsUnit/Pbase/tree/ensembldb , /ensembldb
 + The presentation (as Emacs org-mode file): [[file:EuroBioC2016-ensembldb.org]].
 + The presentation formatted for org-mode to beamer export: [[file:EuroBioC2016-ensembldb-beamer.org]].
 
-Beamer presentation (as pdf) will follow.
+Beamer presentation pdf: [[file:EuroBioC2016-ensembldb-beamer.pdf]].
+
+Some notes on my emacs setup:
++ Theme: https://github.com/jotsetung/flatui-emacs.
++ /Bullets/ instead of /*/ (stars): https://github.com/sabof/org-bullets.
++ The whole package: https://github.com/jotsetung/memacs
 
 * TODOs								   :noexport:
 
