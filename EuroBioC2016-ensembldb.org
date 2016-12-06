@@ -15,6 +15,7 @@ EuroBioC2016, Basel.
 ** Introduction
 
 + =ensembldb=: retrieve gene & transcript annotations.
+
 + =ensembldb= package defines the =EnsDb= class:
   - Wrapper to access annotations from an SQLite database.
   - Same functionality than the =GenomicFeatures= package (=TxDb= object).
@@ -290,5 +291,7 @@ EuroBioC2016, Basel.
 *Thank you for your attention!*
 
 
-https://github.com/jotsetung/EuroBioC2016-ensembldb.git
+
+
+clone me! https://github.com/jotsetung/EuroBioC2016-ensembldb.git
 

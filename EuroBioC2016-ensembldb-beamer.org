@@ -88,7 +88,6 @@
 
 - Multiple filters are combined with a logical /AND/.
 - Each filter supports 1:n values, /=/, /!=/ and also a /like/ condition.
-- Filters speed up queries.
 
 
 ** Building annotation databases
